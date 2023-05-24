@@ -1,0 +1,26 @@
+{
+  "name": "fundrise",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "app:dev": "node -r dotenv/config dist/app.js",
+    "sync:dev": "node -r dotenv/config dist/sync2.js",
+    "sync:dev:reindex": "node -r dotenv/config dist/sync2.js --full-reindex"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "mongodb": "^5.5.0",
+    "seedrandom": "^3.0.5",
+    "typescript": "^5.0.4"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^8.0.1",
+    "@types/lodash": "^4.14.194",
+    "@types/seedrandom": "^3.0.5",
+    "dotenv": "^16.0.3"
+  }
+}
