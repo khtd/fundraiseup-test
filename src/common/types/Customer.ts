@@ -1,4 +1,4 @@
-import { Document } from 'mongodb'
+import { Document } from "mongodb";
 export interface ICustomer extends Document {
   firstName: string;
   lastName: string;
@@ -10,6 +10,6 @@ export interface ICustomer extends Document {
     city: string;
     state: string;
     country: string;
-  },
-  createdAt: string
+  };
+  createdAt: string;
 }

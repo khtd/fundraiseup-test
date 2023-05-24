@@ -19,6 +19,6 @@
     "strictPropertyInitialization": false,
 
     "outDir": "./dist",
-    "baseUrl": "./",
+    "baseUrl": "./src/**",
   }
 }

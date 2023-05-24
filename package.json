@@ -7,7 +7,8 @@
     "build": "tsc",
     "app:dev": "node -r dotenv/config dist/app.js",
     "sync:dev": "node -r dotenv/config dist/sync2.js",
-    "sync:dev:reindex": "node -r dotenv/config dist/sync2.js --full-reindex"
+    "sync:dev:reindex": "node -r dotenv/config dist/sync2.js --full-reindex",
+    "prettier-format": "prettier --config .prettierrc 'src/**/*.ts' --write"
   },
   "author": "",
   "license": "ISC",
@@ -21,6 +22,7 @@
     "@faker-js/faker": "^8.0.1",
     "@types/lodash": "^4.14.194",
     "@types/seedrandom": "^3.0.5",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "prettier": "2.8.8"
   }
 }
