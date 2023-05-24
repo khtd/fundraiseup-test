@@ -36,7 +36,7 @@ difference between dev and prod mode - i assume, that you do not want to use .en
 
 ### sync app (sync.ts)
 
-similarily
+similarly
 
 ```
 $ npm run sync:dev
