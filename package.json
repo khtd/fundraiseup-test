@@ -8,7 +8,7 @@
     "app:dev": "node -r dotenv/config dist/app.js",
     "sync:dev": "node -r dotenv/config dist/sync.js",
     "sync:dev:reindex": "node -r dotenv/config dist/sync.js --full-reindex",
-    "prettier-format": "prettier --config .prettierrc 'src/**/*.ts' --write"
+    "format": "prettier --config .prettierrc.json src/**/*.ts --write"
   },
   "author": "",
   "license": "ISC",
