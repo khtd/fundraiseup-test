@@ -74,35 +74,29 @@ class SyncApp {
   }
 
   private async fullReindex() {
+    const startDate = new Date(
+      Date.now() - SYNC_BATCH_FLUSH_TIMEOUT_MS
+    ).toISOString();
     if ((await this.outputCollection.countDocuments({})) > 0)
       await this.outputCollection.drop();
+
     this.outputCollection = this.db.collection<ICustomer>(
       DB_CUSTOMERS_ANONYMISED_COLLECTION_NAME
     );
-    var cursor = this.inputCollection.find({});
+    var cursor = this.inputCollection.find({ createdAt: { $lt: startDate } });
 
     var data = [];
     while (await cursor.hasNext()) {
       const customer = (await cursor.next()) as ICustomer;
       data.push(this.anonymize(customer));
 
-      if (data.length > 100) {
-        let promises = data.map((d) =>
-          this.outputCollection.findOneAndReplace({ _id: d._id }, d, {
-            upsert: true,
-          })
-        );
-        await Promise.all(promises);
+      if (data.length > 500) {
+        await this.outputCollection.insertMany(data);
         data = [];
       }
     }
 
-    let promises = data.map((d) =>
-      this.outputCollection.findOneAndReplace({ _id: d._id }, d, {
-        upsert: true,
-      })
-    );
-    await Promise.all(promises);
+    if (data.length > 0) await this.outputCollection.insertMany(data);
 
     console.log("success");
     this.shutdown(true);
