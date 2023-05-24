@@ -5,6 +5,8 @@ import {
   ChangeStreamUpdateDocument,
   ChangeStreamInsertDocument,
   Collection,
+  Filter,
+  Db,
 } from "mongodb";
 import seedrandom from "seedrandom";
 import { cloneDeep } from "lodash";
@@ -25,6 +27,7 @@ class SyncApp {
     | ChangeStreamInsertDocument<ICustomer>
     | ChangeStreamUpdateDocument<ICustomer>
   >;
+  db: Db;
   inputCollection: Collection<ICustomer>;
   outputCollection: Collection<ICustomer>;
 
@@ -33,12 +36,12 @@ class SyncApp {
   async init() {
     await this.client.connect();
 
-    const db = this.client.db(DB_NAME);
+    this.db = this.client.db(DB_NAME);
 
-    this.inputCollection = db.collection<ICustomer>(
+    this.inputCollection = this.db.collection<ICustomer>(
       DB_CUSTOMERS_COLLECTION_NAME
     );
-    this.outputCollection = db.collection<ICustomer>(
+    this.outputCollection = this.db.collection<ICustomer>(
       DB_CUSTOMERS_ANONYMISED_COLLECTION_NAME
     );
   }
@@ -71,19 +74,35 @@ class SyncApp {
   }
 
   private async fullReindex() {
-    this.outputCollection.deleteMany({});
-
-    var cursor = this.inputCollection.find();
+    if ((await this.outputCollection.countDocuments({})) > 0)
+      await this.outputCollection.drop();
+    this.outputCollection = this.db.collection<ICustomer>(
+      DB_CUSTOMERS_ANONYMISED_COLLECTION_NAME
+    );
+    var cursor = this.inputCollection.find({});
 
     var data = [];
     while (await cursor.hasNext()) {
       const customer = (await cursor.next()) as ICustomer;
       data.push(this.anonymize(customer));
 
-      if (data.length > 1000) await this.outputCollection.insertMany(data);
+      if (data.length > 100) {
+        let promises = data.map((d) =>
+          this.outputCollection.findOneAndReplace({ _id: d._id }, d, {
+            upsert: true,
+          })
+        );
+        await Promise.all(promises);
+        data = [];
+      }
     }
 
-    await this.outputCollection.insertMany(data);
+    let promises = data.map((d) =>
+      this.outputCollection.findOneAndReplace({ _id: d._id }, d, {
+        upsert: true,
+      })
+    );
+    await Promise.all(promises);
 
     console.log("success");
     this.shutdown(true);
@@ -118,26 +137,16 @@ class SyncApp {
     const toProcess = [...this.batch];
     this.batch = [];
 
-    const exists = await this.outputCollection
-      .find(
-        { _id: { $in: toProcess.map((c) => c._id) } },
-        { projection: { _id: 1 } }
-      )
-      .toArray();
-    const existsIds = exists.map((e) => e._id);
+    const promises: Promise<any>[] = [];
 
-    const toUpdate: ICustomer[] = [];
-    const toAdd: ICustomer[] = [];
-
-    for (let c of toProcess) {
-      if (existsIds.includes(c._id)) toUpdate.push(c);
-      else toAdd.push(c);
+    for (let doc of toProcess) {
+      promises.push(
+        this.outputCollection.findOneAndReplace({ _id: doc._id }, doc, {
+          upsert: true,
+        })
+      );
     }
-
-    for (let doc of toUpdate) {
-      this.outputCollection.updateOne({ _id: doc._id }, doc);
-    }
-    this.outputCollection.insertMany(toAdd);
+    await Promise.all(promises);
     console.log(`proccessed batch, size ${toProcess.length}`);
   }
 
@@ -146,9 +155,9 @@ class SyncApp {
       {},
       { sort: { createdAt: -1 } }
     );
-    const toAdd = await this.inputCollection
-      .find({ createdAt: { $gt: lastAdded?.createdAt } })
-      .toArray();
+    const opts: Filter<ICustomer> = {};
+    if (lastAdded) opts.createdAt = { $gt: lastAdded?.createdAt };
+    const toAdd = await this.inputCollection.find(opts).toArray();
     //in order to check *updated* documents we should add "updatedAt" column to the model.
 
     if (toAdd.length > 0)
